@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>車牌號碼吉凶查詢系統</title>
+    <style>
+        :root {
+            --primary-color: #3f51b5;
+            --accent-color: #f44336;
+            --bg-color: #f5f5f5;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .content {
+            padding: 30px 20px;
+            flex-grow: 1;
+        }
+
+        .input-group {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        input {
+            width: 80%;
+            font-size: 32px;
+            padding: 10px;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+            font-family: 'Consolas', monospace;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .result-card {
+            margin-top: 30px;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 20px;
+            background: #fafafa;
+        }
+
+        .result-title {
+            font-weight: bold;
+            border-bottom: 2px solid var(--primary-color);
+            display: inline-block;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .method-box {
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .method-label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .lucky-banner {
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: #E91E63;
+            margin-top: 20px;
+            min-height: 30px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🚗 車號吉凶大師</h1>
+    </header>
+
+    <div class="content">
+        <div class="input-group">
+            <label>請輸入四位數字車號</label>
+            <input type="number" id="carEntry" placeholder="0000" pattern="\d*" inputmode="numeric">
+        </div>
+
+        <button onclick="calculate()">解析吉凶</button>
+
+        <div class="result-card">
+            <div class="result-title">解析結果</div>
+            
+            <div class="method-box">
+                <div class="method-label">方法 1 (除80法)：</div>
+                <div id="res1">等待輸入...</div>
+            </div>
+
+            <div class="method-box">
+                <div class="method-label">方法 2 (加總法)：</div>
+                <div id="res2">等待輸入...</div>
+            </div>
+
+            <div id="luckyLabel" class="lucky-banner"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const luckData = {
+        1: "大展鴻圖．可獲成功 (吉)", 2: "一盛一衰．勞而無功 (凶)", 3: "蒸蒸日上．百事順遂 (吉)",
+        4: "坎坷前途．苦難折磨 (凶)", 5: "生意欣榮．名利雙收 (吉)", 6: "天降幸運．可成大功 (吉)",
+        7: "和氣致祥．必獲成功 (吉)", 8: "貫徹志望．成功可期 (吉)", 9: "獨營無力．財利無望 (凶)",
+        10: "空費心力．徒勞無功 (凶)", 11: "穩健著實．必得人望 (吉)", 12: "薄弱無力．謀事難成 (凶)",
+        13: "天賦吉運．能得人望 (吉)", 14: "是成是敗．惟靠堅毅 (凶)", 15: "大事成就．一定興隆 (吉)",
+        16: "成就大業．名利雙收 (吉)", 17: "有貴人助．可得成功 (吉)", 18: "順利昌隆．百事亨通 (吉)",
+        19: "內外不合．障礙重重 (凶)", 20: "歷盡艱難．焦心憂勞 (凶)", 21: "專心經營．善用智能 (吉)",
+        22: "懷才不遇．事不如意 (凶)", 23: "名顯四方．終成大業 (吉)", 24: "須靠自力．能奏大功 (吉)",
+        25: "天時地利．再得人格 (吉)", 26: "波瀾起伏．凌駕萬難 (凶)", 27: "一盛一衰．可守成功 (凶帶吉)",
+        28: "遭難屈折．自成秋霜 (凶)", 29: "青雲直上．才略奏功 (吉)", 30: "吉凶參半．得失相伴 (凶)",
+        31: "名利雙收．大業成就 (吉)", 32: "池中之龍．成功可望 (吉)", 33: "智能慎始．必可昌隆 (吉)",
+        34: "災難不絕．難望成功 (凶)", 35: "中吉之數．進退保守 (吉)", 36: "波瀾重疊．常陷窮困 (凶)",
+        37: "逢凶化吉．風調雨順 (吉)", 38: "名雖可得．利則難獲 (凶帶吉)", 39: "光明坦途．指日可待 (吉)",
+        40: "一盛一衰．浮沉不定 (吉帶凶)", 41: "天賦吉運．前途無限 (吉)", 42: "事業不專．十九不成 (吉帶凶)",
+        43: "忍耐自重．轉凶為吉 (吉帶凶)", 44: "事難遂願．貪功好進 (凶)", 45: "綠葉發枝．一舉成名 (吉)",
+        46: "坎坷不平．艱難重重 (凶)", 47: "有貴人助．可成大業 (吉)", 48: "名利俱全．繁榮富貴 (吉)",
+        49: "遇吉則吉．遇凶則凶 (凶)", 50: "吉凶互見．一成一敗 (吉帶凶)", 51: "一盛一衰．浮沉不常 (吉帶凶)",
+        52: "雨過天青．即獲成功 (吉)", 53: "盛衰參半．先吉後凶 (吉帶凶)", 54: "雖傾全力．難望成功 (凶)",
+        55: "外觀隆昌．內隱禍患 (吉帶凶)", 56: "事與願違．終難成功 (凶)", 57: "努力經營．時來運轉 (吉)",
+        58: "浮沉多端．始凶終吉 (凶帶吉)", 59: "遇事猶疑．難望成事 (凶)", 60: "心迷意亂．難定方針 (凶)",
+        61: "雲遮半月．百隱風波 (吉帶凶)", 62: "煩悶懊惱．事事難展 (凶)", 63: "萬物化育．繁榮之象 (吉)",
+        64: "十九不成．徒勞無功 (凶)", 65: "吉運自來．能享盛名 (吉)", 66: "內外不和．信用缺乏 (凶)",
+        67: "事事如意．富貴自來 (吉)", 68: "不失先機．可望成功 (吉)", 69: "動搖不安．常陷逆境 (凶)",
+        70: "慘淡經營．難免貧困 (凶)", 71: "吉凶參半．惟賴勇氣 (吉帶凶)", 72: "得而復失．難以安順 (凶)",
+        73: "安樂自來．自然吉祥 (吉)", 74: "如無智謀．難望成功 (凶)", 75: "吉中帶凶．進不如守 (吉帶凶)",
+        76: "此數大凶．破產之象 (凶)", 77: "先苦後甘．不致失敗 (吉帶凶)", 78: "有得有失．華而不實 (吉帶凶)",
+        79: "前途無光．希望不大 (凶)", 80: "得而復失．枉費心機 (吉帶凶)", 81: "最極之數．能得成功 (吉)"
+    };
+
+    function isTrulyLucky(comment) {
+        // 取得括號內容
+        const match = comment.match(/\(([^)]+)\)/);
+        if (match) {
+            const bracketText = match[1];
+            return !bracketText.includes("凶");
+        }
+        return false;
+    }
+
+    function calculate() {
+        const input = document.getElementById('carEntry').value.trim();
+        
+        if (input.length !== 4 || isNaN(input)) {
+            alert("請輸入完整的四位數字車號！");
+            return;
+        }
+
+        const carNum = parseInt(input);
+
+        // 方法 1: 除 80 法
+        let m1_val = Math.round(((carNum / 80) - Math.floor(carNum / 80)) * 80);
+        if (m1_val === 0) m1_val = 80;
+
+        // 方法 2: 數字加總法
+        let m2_val = input.split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);
+
+        const comment1 = luckData[m1_val] || "未知數據";
+        const comment2 = luckData[m2_val] || "未知數據";
+
+        // 更新 UI
+        document.getElementById('res1').innerHTML = `數字【${m1_val}】<br>${comment1}`;
+        document.getElementById('res2').innerHTML = `數字【${m2_val}】<br>${comment2}`;
+
+        // 判斷雙大吉
+        const isM1Pure = isTrulyLucky(comment1);
+        const isM2Pure = isTrulyLucky(comment2);
+
+        const luckyLabel = document.getElementById('luckyLabel');
+        if (isM1Pure && isM2Pure) {
+            luckyLabel.innerHTML = "✨ 恭喜！雙純吉臨門：大吉 ✨";
+        } else {
+            luckyLabel.innerHTML = "";
+        }
+    }
+</script>
+
+</body>
+</html>
